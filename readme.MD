@@ -22,13 +22,13 @@ Requirements around how we want to code our support for command line arguments.
 
 ## Simple/NoSchema
 ```
-string[] args = { "command1", "cmd1subcmd1", "--flag1 --option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'" };
+string[] argsCmd1SubCmd1 = { "cmd1", "subcmd1", "--customFlag1", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
 
 ParsedArguments pargs = YACLAP.SimpleParser(args);
 
-Assert.That(pargs.Command, Is.EqualTo("command1"));
+Assert.That(pargs.Command, Is.EqualTo("cmd1"));
 Assert.True(pargs.HasCommand);
-Assert.That(pargs.SubCommand, Is.EqualTo("cmd1sub1"));
+Assert.That(pargs.SubCommand, Is.EqualTo("subcmd11"));
 Assert.True(pargs.HasSubCommand);
 Assert.True(pargs.Flags("flag1"));
 Assert.False(pargs.Flags("flag2"));
@@ -38,7 +38,6 @@ Assert.False(pargs.HasOption("optionX"));
 ```
 
 ## Reflective schema
-YACLAP support simple/schema-less argument patterns but it also supports a more strongly typed approach through the use of reflection across simple C# objects.
 
 ```
 class CommonOptions

@@ -25,19 +25,21 @@ namespace YACLAP
 
         public bool Flags(string flag)
         {
-            return _options.ContainsKey(flag) && _options[flag].ToBool();
+            var lower = flag.ToLower();
+            return _options.ContainsKey(lower) && _options[lower].ToBool();
         }
 
         public bool HasOption(string option)
         {
-            return _options.ContainsKey(option) && !_options[option].ToBool();
+            var lower = option.ToLower();
+            return _options.ContainsKey(lower) && !_options[lower].ToBool();
         }
 
         public string Option(string option)
         {
             if (!HasOption(option)) return null;
 
-            return _options[option];
+            return _options[option.ToLower()];
         }
 
         private void CheckForFlagsAndOptions(Queue<string> argQueue)
@@ -46,7 +48,7 @@ namespace YACLAP
             {
                 if (NextTokenIsOption(argQueue))
                 {
-                    var name = argQueue.Dequeue().Remove(0, 2);
+                    var name = argQueue.Dequeue().Remove(0, 2).ToLower();
                     var value = "true";
                     if (argQueue.Any())
                     {

@@ -8,30 +8,29 @@ namespace YACLAP.Tests
 
         class CommonOptions
         {
-            public bool Flag1;
-            public string Option1;
-            public int Option2;
-            public string[] Option3;
-            public string Option4;
+            public bool Flag1 { get; set; }
+            public string Option1 { get; set; }
+            public int Option2 { get; set; }
+            public string Option4 { get; set; }
         }
-        string[] argsCmd1SubCmd1 = { "cmd1", "subcmd1", "--customFlag1", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
+        string[] argsCmd1SubCmd1 = { "cmd1", "subcmd1", "--customFlag1", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "two words" };
         class Cmd1SubCmd1 : CommonOptions
         {
             public bool CustomFlag1 { get; set; }
         }
 
-        string[] argsCmd1SubCmd2 = { "cmd1", "subcmd2", "--customFlag2", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "'two words'" };
+        string[] argsCmd1SubCmd2 = { "cmd1", "subcmd2", "--customFlag2", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "two words" };
         class Cmd1SubCmd2 : CommonOptions
         {
             public bool CustomFlag2 { get; set; }
         }
 
-        string[] argsCmd2SubCmd1 = { "cmd2", "subcmd1", "--customFlag3", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "'two words'" };
+        string[] argsCmd2SubCmd1 = { "cmd2", "subcmd1", "--customFlag3", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "two words" };
         class Cmd2SubCmd1 : CommonOptions
         {
             public bool CustomFlag3 { get; set; }
         }
-        string[] argsCmd2SubCmd2 = { "cmd2", "subcmd2", "--customFlag4", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "'two words'" };
+        string[] argsCmd2SubCmd2 = { "cmd2", "subcmd2", "--customFlag4", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "two words" };
         class Cmd2SubCmd2 : CommonOptions
         {
             public bool CustomFlag4 { get; set; }
@@ -46,8 +45,6 @@ namespace YACLAP.Tests
         [Test]
         public void SimpleParserStructuralSpike()
         {
-            string[] args = { "command", "subcommand", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
-
             ParsedArguments pargs = YACLAP.SimpleParser(argsCmd1SubCmd1);
 
             Assert.That(pargs.Command, Is.EqualTo("cmd1"));
@@ -76,9 +73,17 @@ namespace YACLAP.Tests
             };
 
             var parsed1 = YACLAP.Parser(argsCmd1SubCmd1, argTypes);
+
+            
             Assert.That(parsed1.Command, Is.EqualTo("cmd1"));
             Assert.That(parsed1.SubCommand, Is.EqualTo("subcmd1"));
             Assert.That(parsed1.Data, Is.TypeOf<Cmd1SubCmd1>());
+            var cmd1SubCmd1 = parsed1.Data as Cmd1SubCmd1;
+            Assert.That(cmd1SubCmd1.CustomFlag1, Is.True);
+            Assert.That(cmd1SubCmd1.Option1, Is.EqualTo("value1"));
+            Assert.That(cmd1SubCmd1.Option2, Is.EqualTo(42));
+//            Assert.That(cmd1SubCmd1.Option3, Is.EqualTo("abc,def,ghi"));
+            Assert.That(cmd1SubCmd1.Option4, Is.EqualTo("two words"));
 
             var parsed2 = YACLAP.Parser(argsCmd1SubCmd2, argTypes);
             Assert.That(parsed2.Command, Is.EqualTo("cmd1"));

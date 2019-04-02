@@ -85,6 +85,7 @@ namespace YACLAP
             Assert.That(parser.Option("option1"), Is.EqualTo("option1value"));
             Assert.False(parser.Error);
         }
+
         [Test]
         public void Should_handle_non_existant_flags_and_options()
         {
@@ -96,6 +97,17 @@ namespace YACLAP
             Assert.False(parser.HasSubCommand);
             Assert.False(parser.Flags("flagx"));
             Assert.That(parser.Option("option2"), Is.Null);
+            Assert.False(parser.Error);
+        }
+
+        [Test]
+        public void Should_handle_option_with_spaces_in_value()
+        {
+            string[] args = { "--flag1", "--option1", "two words"};
+
+            var parser = new ParsedArguments(args);
+
+            Assert.That(parser.Option("option1"), Is.EqualTo("two words"));
             Assert.False(parser.Error);
         }
 
