@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
 using System.Linq;
-using System.Reflection;
 using YACLAP.Extensions;
-
+using System.ComponentModel.DataAnnotations;
 namespace YACLAP
 {
-    public static class YACLAP
+    public static class Yaclap
     {
         public static ParsedArguments SimpleParser(string[] args)
         {
@@ -15,19 +13,19 @@ namespace YACLAP
         }
 
         // Single type/No commands
-        public static ReflectionParser Parser<T>(string[] args)
+        public static IReflectionParser Parser<T>(string[] args)
         {
             var reflectionParser = CreateParser(typeof(T), new ParsedArguments(args));
             return reflectionParser;
         }
 
         // Multiple command support with multiple types
-        public static ReflectionParser Parser(string[] args, params Type[] argObjects)
+        public static IReflectionParser Parser(string[] args, params Type[] argObjects)
         {
-            if (!argObjects.Any()) throw new ArgumentOutOfRangeException("No argument types supplied!");
+            if (!argObjects.Any()) throw new ArgumentOutOfRangeException(nameof(argObjects),"No argument types supplied!");
             if (!args.Any()) { 
                 // TODO: This should create default arguments return
-                throw new ArgumentOutOfRangeException("No argument supplied!");
+                throw new ArgumentOutOfRangeException(nameof(args),"No argument supplied!");
             }
 
             var parser = new ParsedArguments(args);
@@ -40,10 +38,10 @@ namespace YACLAP
             
             var reflectionParser = CreateParser(argObject, parser);
 
-            return reflectionParser as ReflectionParser;
+            return reflectionParser;
         }
 
-        public static ReflectionParser CreateParser(Type argObject, ParsedArguments args)
+        public static IReflectionParser CreateParser(Type argObject, ParsedArguments args)
         {
             var instance = Activator.CreateInstance(argObject);
 
@@ -53,14 +51,14 @@ namespace YACLAP
             Type myGeneric = typeof(ReflectionParser<>);
             Type constructedClass = myGeneric.MakeGenericType(argObject);
 
-            ReflectionParser reflectionParser;
+            IReflectionParser reflectionParser;
             if (args.Command == null)
             {
-                reflectionParser = (ReflectionParser) Activator.CreateInstance(constructedClass, new object[] { instance });
+                reflectionParser = (IReflectionParser) Activator.CreateInstance(constructedClass, new object[] { instance });
             }
             else
             {
-                reflectionParser = (ReflectionParser)Activator.CreateInstance(constructedClass, new object[] { args.Command, args.SubCommand, instance });
+                reflectionParser = (IReflectionParser)Activator.CreateInstance(constructedClass, new object[] { args.Command, args.SubCommand, instance });
             }
 
             return reflectionParser;

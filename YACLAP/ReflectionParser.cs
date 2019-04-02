@@ -1,20 +1,48 @@
-﻿namespace YACLAP
-{
-    public class ReflectionParser
-    {
-        public string Command { get; private set; }
-        public string SubCommand { get; private set; }
-        public virtual object Data { get; set; }
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
-        public ReflectionParser(string command, string subCommand, object data)
+namespace YACLAP
+{
+    public interface IReflectionParser
+    {
+        string Command { get; }
+        string SubCommand { get; }
+        object Data { get; set; }
+        bool Error { get; set; }
+        string Errors { get; set; }
+    }
+
+    public class ReflectionParser : IReflectionParser
+    {
+        public string Command { get; }
+        public string SubCommand { get; }
+        public object Data { get; set; }
+        public bool Error { get; set; }
+        public string Errors { get; set; }
+
+        public ReflectionParser(string command, string subCommand, object data) : this(data)
         {
             Command = command;
             SubCommand = subCommand;
-            Data = data;
         }
         public ReflectionParser(object data)
         {
+            Validate(data);
+
             Data = data;
+        }
+
+        private void Validate(object data)
+        {
+            var validationResults = new List<ValidationResult>();
+            var validationContext = new ValidationContext(data, null, null);
+            if (!Validator.TryValidateObject(data, validationContext, validationResults))
+            {
+                // Validation failed, show errors
+                Error = true;
+
+                Errors = string.Join("\n", validationResults);
+            }
         }
     }
 

@@ -6,7 +6,7 @@ namespace YACLAP
 {
     public class ParsedArguments
     {
-        private IDictionary<string, string> _options = new Dictionary<string, string>();
+        private readonly IDictionary<string, string> _options = new Dictionary<string, string>();
 
         public ParsedArguments(string[] args)
         {
@@ -21,7 +21,7 @@ namespace YACLAP
         public bool HasCommand => Command.Any();
         public string SubCommand { get; private set; } = "";
         public bool HasSubCommand => SubCommand.Any();
-        public bool Error { get; private set; }
+        public bool Error { get; }
 
         public bool Flags(string flag)
         {
@@ -48,7 +48,7 @@ namespace YACLAP
             {
                 if (NextTokenIsOption(argQueue))
                 {
-                    var name = argQueue.Dequeue().Remove(0, 2).ToLower();
+                    var option = argQueue.Dequeue().Remove(0, 2).ToLower();
                     var value = "true";
                     if (argQueue.Any())
                     {
@@ -57,7 +57,7 @@ namespace YACLAP
                             value = argQueue.Dequeue();
                         }
                     }
-                    _options.Add(name, value);
+                    _options.Add(option, value);
                 }
             }
         }
