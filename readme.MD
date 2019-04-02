@@ -38,6 +38,7 @@ Assert.False(pargs.HasOption("optionX"));
 ```
 
 ## Reflective schema
+* Supports Validation Annotations
 
 ```
 class CommonOptions

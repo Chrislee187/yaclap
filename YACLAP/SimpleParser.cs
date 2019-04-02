@@ -4,11 +4,24 @@ using YACLAP.Extensions;
 
 namespace YACLAP
 {
-    public class ParsedArguments
+    public interface ISimpleParser
     {
+        string Command { get; }
+        bool HasCommand { get; }
+        string SubCommand { get; }
+        bool HasSubCommand { get; }
+        bool Flags(string flag);
+        bool HasOption(string option);
+        string Option(string option);
+    }
+
+    public class SimpleParser : ISimpleParser
+    {
+        public static ISimpleParser CreateParser(string[] args) => new SimpleParser(args);
+
         private readonly IDictionary<string, string> _options = new Dictionary<string, string>();
 
-        public ParsedArguments(string[] args)
+        public SimpleParser(string[] args)
         {
             if (!args.Any()) return;
             var argQueue = new Queue<string>(args);
@@ -21,7 +34,6 @@ namespace YACLAP
         public bool HasCommand => Command.Any();
         public string SubCommand { get; private set; } = "";
         public bool HasSubCommand => SubCommand.Any();
-        public bool Error { get; }
 
         public bool Flags(string flag)
         {
@@ -35,12 +47,7 @@ namespace YACLAP
             return _options.ContainsKey(lower) && !_options[lower].ToBool();
         }
 
-        public string Option(string option)
-        {
-            if (!HasOption(option)) return null;
-
-            return _options[option.ToLower()];
-        }
+        public string Option(string option) => HasOption(option) ? _options[option.ToLower()] : null;
 
         private void CheckForFlagsAndOptions(Queue<string> argQueue)
         {
@@ -82,7 +89,6 @@ namespace YACLAP
         private bool NextTokenIsOption(Queue<string> queue) => queue.Any() && IsOption(queue.Peek());
 
         private bool IsOption(string arg) => arg.Any() && arg.StartsWith("--");
-
     }
 
 }

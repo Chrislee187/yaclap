@@ -6,7 +6,7 @@
 
         public Command SubCommand { get; private set; }
 
-        public Command(ParsedArguments parsed)
+        public Command(SimpleParser parsed)
         {
             
         }

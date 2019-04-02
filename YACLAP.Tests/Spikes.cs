@@ -52,7 +52,7 @@ namespace YACLAP.Tests
         [Test]
         public void SimpleParserStructuralSpike()
         {
-            ParsedArguments pargs = Yaclap.SimpleParser(_argsCmd1SubCmd1);
+            var pargs = Yaclap.Parser(_argsCmd1SubCmd1);
 
             Assert.That(pargs.Command, Is.EqualTo("cmd1"));
             Assert.True(pargs.HasCommand);
@@ -205,7 +205,7 @@ namespace YACLAP.Tests
 
     public class Command1Command : Command
     {
-        public Command1Command(ParsedArguments parsed) : base(parsed)
+        public Command1Command(SimpleParser parsed) : base(parsed)
         {
             Name = parsed.Command;
         }
