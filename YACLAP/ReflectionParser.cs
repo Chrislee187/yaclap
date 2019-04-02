@@ -12,6 +12,10 @@
             SubCommand = subCommand;
             Data = data;
         }
+        public ReflectionParser(object data)
+        {
+            Data = data;
+        }
     }
 
     public class ReflectionParser<T> : ReflectionParser

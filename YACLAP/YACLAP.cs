@@ -11,11 +11,14 @@ namespace YACLAP
             return new ParsedArguments(args);
         }
 
-        public static object CreateParser(Action<ParserBuilder> command1)
+        // Single type/No commands
+        public static ReflectionParser Parser<T>(string[] args)
         {
-            throw new NotImplementedException();
+            var reflectionParser = CreateParser(typeof(T));
+            return reflectionParser;
         }
 
+        // Multiple command support with multiple types
         public static ReflectionParser Parser(string[] args, params Type[] argObjects)
         {
             if (!argObjects.Any()) throw new ArgumentOutOfRangeException("No argument types supplied!");
@@ -47,13 +50,29 @@ namespace YACLAP
 
             if (argObject == null) throw new ArgumentNullException($"Type for command '{commandTypeName}' not found.");
             
+            var reflectionParser = CreateParser(argObject, command, subCommand);
+
+            return reflectionParser as ReflectionParser;
+        }
+
+        public static ReflectionParser CreateParser(Type argObject, string command = null, string subCommand = null)
+        {
             var instance = Activator.CreateInstance(argObject);
 
             Type myGeneric = typeof(ReflectionParser<>);
             Type constructedClass = myGeneric.MakeGenericType(argObject);
-            var reflectionParser = Activator.CreateInstance(constructedClass, new object[]{ command, subCommand, instance});
 
-            return reflectionParser as ReflectionParser;
+            ReflectionParser reflectionParser;
+            if (command == null)
+            {
+                reflectionParser = (ReflectionParser) Activator.CreateInstance(constructedClass, new object[] { instance });
+            }
+            else
+            {
+                reflectionParser = (ReflectionParser)Activator.CreateInstance(constructedClass, new object[] { command, subCommand, instance });
+            }
+
+            return reflectionParser;
         }
 
         private static Type FindType(Type[] types, string name) => types.FirstOrDefault(t => t.Name.ToLower().Contains(name.ToLower()));

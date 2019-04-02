@@ -15,66 +15,12 @@ namespace YACLAP
 
             CheckForCommand(argQueue);
             CheckForSubCommand(argQueue);
-
-            while (argQueue.Any())
-            {
-                if (NextTokenIsOption(argQueue))
-                {
-                    var name = argQueue.Dequeue().Remove(0,2);
-
-                    if (!argQueue.Any())
-                    {
-                        _options.Add(name, "true");
-                    }
-                    else
-                    {
-                        if (NextTokenIsOption(argQueue))
-                        {
-                            _options.Add(name, "true");
-                        }
-                        else
-                        {
-                            var value = argQueue.Dequeue();
-                            _options.Add(name, value);
-                        }
-
-                    }
-                }
-            }
+            CheckForFlagsAndOptions(argQueue);
         }
-
-        private bool CheckForSubCommand(Queue<string> argQueue)
-        {
-            if (NextTokenIsCommand(argQueue))
-            {
-                SubCommand = argQueue.Dequeue();
-            }
-
-            return !string.IsNullOrEmpty(SubCommand);
-        }
-
-        private bool CheckForCommand(Queue<string> argQueue)
-        {
-            if (NextTokenIsCommand(argQueue))
-            {
-                Command = argQueue.Dequeue();
-            }
-
-            return !string.IsNullOrEmpty(Command);
-        }
-
-        private bool NextTokenIsCommand(Queue<string> queue) => queue.Any() && !queue.Peek().StartsWith("--");
-        private bool NextTokenIsOption(Queue<string> queue) => queue.Any() && queue.Peek().StartsWith("--");
-
-        private bool IsOption(string arg) => arg.Any() && arg.StartsWith("--");
-
         public string Command { get; private set; } = "";
-
         public bool HasCommand => Command.Any();
-
         public string SubCommand { get; private set; } = "";
         public bool HasSubCommand => SubCommand.Any();
-
         public bool Error { get; private set; }
 
         public bool Flags(string flag)
@@ -93,6 +39,48 @@ namespace YACLAP
 
             return _options[option];
         }
+
+        private void CheckForFlagsAndOptions(Queue<string> argQueue)
+        {
+            while (argQueue.Any())
+            {
+                if (NextTokenIsOption(argQueue))
+                {
+                    var name = argQueue.Dequeue().Remove(0, 2);
+                    var value = "true";
+                    if (argQueue.Any())
+                    {
+                        if (!NextTokenIsOption(argQueue))
+                        {
+                            value = argQueue.Dequeue();
+                        }
+                    }
+                    _options.Add(name, value);
+                }
+            }
+        }
+
+        private void CheckForSubCommand(Queue<string> argQueue)
+        {
+            if (NextTokenIsCommand(argQueue))
+            {
+                SubCommand = argQueue.Dequeue();
+            }
+        }
+
+        private void CheckForCommand(Queue<string> argQueue)
+        {
+            if (NextTokenIsCommand(argQueue))
+            {
+                Command = argQueue.Dequeue();
+            }
+        }
+
+        private bool NextTokenIsCommand(Queue<string> queue) => queue.Any() && !IsOption(queue.Peek());
+        private bool NextTokenIsOption(Queue<string> queue) => queue.Any() && IsOption(queue.Peek());
+
+        private bool IsOption(string arg) => arg.Any() && arg.StartsWith("--");
+
     }
 
 }

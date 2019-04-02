@@ -1,48 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Net;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace YACLAP.Tests
 {
     public class Tests
     {
-        class NoCommandArgs
-        {
-            public bool Flag1;
-            public string Option1;
-            public int Option2;
-            public string[] Option3;
-            public string Option4;
-        }
-
-        class Command1NoSubCommandArgs
-        {
-            class Cmd1
-            {
-                public bool Flag1;
-                public string Option1;
-                public int Option2;
-                public string[] Option3;
-                public string Option4;
-            }
-        }
-
-        class Command1AndSubCommand1Args
-        {
-            class Cmd1
-            {
-                class SubCmd1
-                {
-                    public bool Flag1;
-                    public string Option1;
-                    public int Option2;
-                    public string[] Option3;
-                    public string Option4;
-                }
-            }
-        }
 
         class CommonOptions
         {
@@ -52,70 +14,30 @@ namespace YACLAP.Tests
             public string[] Option3;
             public string Option4;
         }
-
-        string[] argsCmd1SubCmd1 = { "cmd1", "cmd1subcmd1", "--customFlag1 --flag1 --option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'" };
+        string[] argsCmd1SubCmd1 = { "cmd1", "subcmd1", "--customFlag1", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
         class Cmd1SubCmd1 : CommonOptions
         {
             public bool CustomFlag1 { get; set; }
         }
-        string[] argsCmd1SubCmd2 = { "cmd1", "cmd1subcmd2", "--customFlag2--flag1 --option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'" };
+
+        string[] argsCmd1SubCmd2 = { "cmd1", "subcmd2", "--customFlag2", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "'two words'" };
         class Cmd1SubCmd2 : CommonOptions
         {
             public bool CustomFlag2 { get; set; }
         }
 
-        string[] argsCmd2SubCmd1 = { "cmd2", "cmd1subcmd1", "--customFlag3 --flag1 --option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'" };
+        string[] argsCmd2SubCmd1 = { "cmd2", "subcmd1", "--customFlag3", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "'two words'" };
         class Cmd2SubCmd1 : CommonOptions
         {
             public bool CustomFlag3 { get; set; }
         }
-        string[] argsCmd2SubCmd2 = { "cmd2", "cmd1subcmd2", "--customFlag4 --flag1 --option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'" };
+        string[] argsCmd2SubCmd2 = { "cmd2", "subcmd2", "--customFlag4", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc, def, ghi", "--option4", "'two words'" };
         class Cmd2SubCmd2 : CommonOptions
         {
             public bool CustomFlag4 { get; set; }
         }
 
-        class ComplexCommandsAndArgs
-        {
-            class Cmd1
-            {
-                class SubCmd1
-                {
-                    public bool Flag1;
-                    public string Option1;
-                    public int Option2;
-                    public string[] Option3;
-                    public string Option4;
-                }
-                class SubCmd2
-                {
-                    public bool Flag1;
-                    public string Option1;
-                    public int Option2;
-                    public string[] Option3;
-                    public string Option4;
-                }
-            }
-            class Cmd2
-            {
-                class SubCmd1
-                {
-                    public bool Flag1;
-                    public string Option1;
-                    public int Option2;
-                    public string[] Option3;
-                    public string Option4;
-                }
-                class SubCmd2
-                {
-                    public bool Flag1;
-                    public string Option1;
-                    public int Option2;
-                    public string[] Option3;
-                    public string Option4;
-                }
-            }
-        }
+
         [SetUp]
         public void Setup()
         {
@@ -126,14 +48,17 @@ namespace YACLAP.Tests
         {
             string[] args = { "command", "subcommand", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
 
-            ParsedArguments pargs = YACLAP.SimpleParser(args);
+            ParsedArguments pargs = YACLAP.SimpleParser(argsCmd1SubCmd1);
 
-            Assert.That(pargs.Command, Is.EqualTo("command"));
+            Assert.That(pargs.Command, Is.EqualTo("cmd1"));
             Assert.True(pargs.HasCommand);
-            Assert.That(pargs.SubCommand, Is.EqualTo("subcommand"));
+            Assert.That(pargs.SubCommand, Is.EqualTo("subcmd1"));
             Assert.True(pargs.HasSubCommand);
+            Assert.True(pargs.Flags("customFlag1"));
             Assert.True(pargs.Flags("flag1"));
+            Assert.False(pargs.HasOption("flag1"));
             Assert.True(pargs.HasOption("option1"));
+            Assert.False(pargs.Flags("option1"));
             Assert.That(pargs.Option("option1"), Is.EqualTo("value1"));
         }
 
@@ -142,9 +67,13 @@ namespace YACLAP.Tests
         public void ReflectiveParserStructuralSpike()
         {
 
-            string[] argsCmd1SubCmd1 = { "cmd1", "subcmd1", "--customFlag1", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
-            string[] argsCmd1SubCmd2 = { "cmd1", "subcmd2", "--customFlag1", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
-            Type[] argTypes = {typeof(Cmd1SubCmd1), typeof(Cmd1SubCmd2)};
+            Type[] argTypes =
+            {
+                typeof(Cmd1SubCmd1),
+                typeof(Cmd1SubCmd2),
+                typeof(Cmd2SubCmd1),
+                typeof(Cmd2SubCmd2),
+            };
 
             var parsed1 = YACLAP.Parser(argsCmd1SubCmd1, argTypes);
             Assert.That(parsed1.Command, Is.EqualTo("cmd1"));
@@ -156,63 +85,73 @@ namespace YACLAP.Tests
             Assert.That(parsed2.SubCommand, Is.EqualTo("subcmd2"));
             Assert.That(parsed2.Data, Is.TypeOf<Cmd1SubCmd2>());
 
+            var parsed3 = YACLAP.Parser(argsCmd2SubCmd1, argTypes);
+            Assert.That(parsed3.Command, Is.EqualTo("cmd2"));
+            Assert.That(parsed3.SubCommand, Is.EqualTo("subcmd1"));
+            Assert.That(parsed3.Data, Is.TypeOf<Cmd2SubCmd1>());
+
+            var parsed4 = YACLAP.Parser(argsCmd2SubCmd2, argTypes);
+            Assert.That(parsed4.Command, Is.EqualTo("cmd2"));
+            Assert.That(parsed4.SubCommand, Is.EqualTo("subcmd2"));
+            Assert.That(parsed4.Data, Is.TypeOf<Cmd2SubCmd2>());
+
         }
 
-        [Test]
-        public void Spike()
+        [Test, Ignore("WIP")]
+        public void DeclarativeParserStructuralSpike()
         {
-            string[] args = { "command1", "cmd1subcmd1", "--flag1 --option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'" };
-
-            var flags = "--flag1";
-            var options = "--option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'";
-
-            string[] noCommandsArgs = { $"{flags}{options}" };
-            var noCommandsParser = YACLAP.CreateParser((builder) => BuildTestOptions(builder.NoCommands));
-
-            string[] commandNoSubCommandArgs = { $"cmd1 {flags}{options}" };
-            var commandNoSubCommandParser = YACLAP.CreateParser((builder) =>
-            {
-                builder
-                    .AddCommand("cmd1", commandBuilder => BuildTestOptions(commandBuilder.NoSubCommand));
-            });
-
-            string[] commandAndSubCommandArgs = { $"cmd1 subcmd1 {flags}{options}" };
-            var commandAndSubCommandParser = YACLAP.CreateParser((builder) =>
-            {
-                builder
-                    .AddCommand("cmd1", cmdBuilder =>
-                    {
-                        cmdBuilder.AddSubCommand("subcmd1", BuildTestOptions);
-                    });
-;
-            });
-
-            string[] complexParserArg1 = { $"cmd1 subcmd1 {flags}{options}" };
-            string[] complexParserArg2 = { $"cmd1 subcmd2 {flags}{options}" };
-            string[] complexParserArg3 = { $"cmd2 subcmd1 {flags}{options}" };
-            string[] complexParserArg4 = { $"cmd3 subcmd2 {flags}{options}" };
-            var complexParser = YACLAP.CreateParser((builder) =>
-            {
-                builder
-                    .AddCommand("cmd1", cmdBuilder =>
-                    {
-                        cmdBuilder.AddSubCommand("subcmd1", BuildTestOptions);
-                    })
-                    .AddCommand("cmd2", cmdBuilder =>
-                    {
-                        cmdBuilder.AddSubCommand("subcmd2", BuildTestOptions);
-                    })
-                    .AddCommand("cmd1", cmdBuilder =>
-                    {
-                        cmdBuilder.AddSubCommand("subcmd1", BuildTestOptions);
-                    })
-                    .AddCommand("cmd2", cmdBuilder =>
-                    {
-                        cmdBuilder.AddSubCommand("subcmd2", BuildTestOptions);
-                    })
-                    ;
-                ;
-            });
+//            string[] args = { "command1", "cmd1subcmd1", "--flag1 --option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'" };
+//
+//            var flags = "--flag1";
+//            var options = "--option1 value1 --option2 42 --option3 abc,def,ghi --option4 'two words'";
+//
+//            string[] noCommandsArgs = { $"{flags}{options}" };
+//            var noCommandsParser = YACLAP.CreateParser((builder) => BuildTestOptions(builder.NoCommands));
+//
+//            string[] commandNoSubCommandArgs = { $"cmd1 {flags}{options}" };
+//            var commandNoSubCommandParser = YACLAP.CreateParser((builder) =>
+//            {
+//                builder
+//                    .AddCommand("cmd1", commandBuilder => BuildTestOptions(commandBuilder.NoSubCommand));
+//            });
+//
+//            string[] commandAndSubCommandArgs = { $"cmd1 subcmd1 {flags}{options}" };
+//            var commandAndSubCommandParser = YACLAP.CreateParser((builder) =>
+//            {
+//                builder
+//                    .AddCommand("cmd1", cmdBuilder =>
+//                    {
+//                        cmdBuilder.AddSubCommand("subcmd1", BuildTestOptions);
+//                    });
+//;
+//            });
+//
+//            string[] complexParserArg1 = { $"cmd1 subcmd1 {flags}{options}" };
+//            string[] complexParserArg2 = { $"cmd1 subcmd2 {flags}{options}" };
+//            string[] complexParserArg3 = { $"cmd2 subcmd1 {flags}{options}" };
+//            string[] complexParserArg4 = { $"cmd3 subcmd2 {flags}{options}" };
+//            var complexParser = YACLAP.CreateParser((builder) =>
+//            {
+//                builder
+//                    .AddCommand("cmd1", cmdBuilder =>
+//                    {
+//                        cmdBuilder.AddSubCommand("subcmd1", BuildTestOptions);
+//                    })
+//                    .AddCommand("cmd2", cmdBuilder =>
+//                    {
+//                        cmdBuilder.AddSubCommand("subcmd2", BuildTestOptions);
+//                    })
+//                    .AddCommand("cmd1", cmdBuilder =>
+//                    {
+//                        cmdBuilder.AddSubCommand("subcmd1", BuildTestOptions);
+//                    })
+//                    .AddCommand("cmd2", cmdBuilder =>
+//                    {
+//                        cmdBuilder.AddSubCommand("subcmd2", BuildTestOptions);
+//                    })
+//                    ;
+//                ;
+//            });
 //
 //
 //
@@ -248,5 +187,84 @@ namespace YACLAP.Tests
             Name = parsed.Command;
         }
     }
+    class NoCommandArgs
+    {
+        public bool Flag1;
+        public string Option1;
+        public int Option2;
+        public string[] Option3;
+        public string Option4;
+    }
+
+    class Command1NoSubCommandArgs
+    {
+        class Cmd1
+        {
+            public bool Flag1;
+            public string Option1;
+            public int Option2;
+            public string[] Option3;
+            public string Option4;
+        }
+    }
+
+    class Command1AndSubCommand1Args
+    {
+        class Cmd1
+        {
+            class SubCmd1
+            {
+                public bool Flag1;
+                public string Option1;
+                public int Option2;
+                public string[] Option3;
+                public string Option4;
+            }
+        }
+    }
+
+    class ComplexCommandsAndArgs
+    {
+        class Cmd1
+        {
+            class SubCmd1
+            {
+                public bool Flag1;
+                public string Option1;
+                public int Option2;
+                public string[] Option3;
+                public string Option4;
+            }
+            class SubCmd2
+            {
+                public bool Flag1;
+                public string Option1;
+                public int Option2;
+                public string[] Option3;
+                public string Option4;
+            }
+        }
+        class Cmd2
+        {
+            class SubCmd1
+            {
+                public bool Flag1;
+                public string Option1;
+                public int Option2;
+                public string[] Option3;
+                public string Option4;
+            }
+            class SubCmd2
+            {
+                public bool Flag1;
+                public string Option1;
+                public int Option2;
+                public string[] Option3;
+                public string Option4;
+            }
+        }
+    }
+
+
 
 }
