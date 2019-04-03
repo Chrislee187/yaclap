@@ -102,6 +102,22 @@ namespace YACLAP.Tests
 
             Assert.That(parser.Option("option1"), Is.EqualTo("two words"));
         }
+        [Test]
+        public void Should_handle_command_subcommand_flags_and_options()
+        {
+            string[] args = { "command1", "subcommand1", "--command1subcommand1option", "value", "--command1subcommand1flag" };
+
+            var parser = new SimpleParser(args);
+
+            Assert.True(parser.HasCommand);
+            Assert.That(parser.Command, Is.EqualTo("command1"));
+            Assert.True(parser.HasSubCommand);
+            Assert.That(parser.SubCommand, Is.EqualTo("subcommand1"));
+            Assert.True(parser.Flags("command1subcommand1flag"));
+            Assert.That(parser.Option("command1subcommand1option"), Is.EqualTo("value"));
+
+
+        }
 
     }
 }

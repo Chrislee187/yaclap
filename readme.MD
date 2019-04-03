@@ -4,12 +4,10 @@ Looked at a few of the multitude of parser libraries for command line arguments.
 So after spending some time coming up with a good acronym ;) I thought about my requirements.
 
 # Usage requirements
-These are the requirements around how we want to use command line arguments;
-
-* Support for "commands" - a keyword, without '--' etc, as the first argument)
-* Support for "sub-commands"  - a keyword, without '--' etc, as the second argument that passed to the first "command")
-* Support for "flags" - a keyword, with '--' etc. but with no value associated so is a boolean
-* Support for "arguments" - a keyword, with '--' etc. and with a value (quote delimited if contains spaces)
+* Support for "commands" - a keyword, without '--' etc, as the first argument). i.e. the dotnet "new" command
+* Support for "sub-commands"  - a keyword, without '--' etc, as the second argument that passed to the first "command"). i.e. the dotnet new "sln" sub-command
+* Support for "flags" - a keyword, with '--' etc. but with no value associated so is a boolean. i.e. The git amend flag, ``git commit "--amend" flag``
+* Support for "arguments" - a keyword, with '--' etc. and with a value (quote delimited if contains spaces). i.e. i.e. the git message option, ``git commit -"m" <Message>``
 
 **Extras**
 
@@ -20,7 +18,10 @@ These are the requirements around how we want to use command line arguments;
 # Development Requirements
 Requirements around how we want to code our support for command line arguments.
 
-## Simple/NoSchema
+## Simple/NoSchema parsing
+* Manual validations required
+* Great for very simple requirements
+* Is used by the Reflective parser
 ```
 string[] argsCmd1SubCmd1 = { "cmd1", "subcmd1", "--customFlag1", "--flag1", "--option1", "value1", "--option2", "42", "--option3", "abc,def,ghi", "--option4", "'two words'" };
 
@@ -37,8 +38,9 @@ Assert.That(pargs.Option<string>("option1"), Is.EqualTo("value1"));
 Assert.False(pargs.HasOption("optionX"));
 ```
 
-## Reflective schema
-* Supports Validation Annotations
+## Reflective schema parsing
+* Supports the standard .NET Annotations and Validation, populates Error fields in response with validation failures
+* "schema" is defined by a class containing the flags and options for a given command/subcommand, by convention the class is expected to be named {command}{subcommand}
 
 ```
 class CommonOptions
@@ -65,6 +67,7 @@ var parsed1 = YACLAP.Parser(args1, argTypes);
 Assert.That(parsed1.Command, Is.EqualTo("cmd1"));
 Assert.That(parsed1.SubCommand, Is.EqualTo("subcmd1"));
 Assert.That(parsed1.Data, Is.TypeOf<Cmd1SubCmd1>());
+Assert.False(parsed1.Error);
 
 var parsed2 = YACLAP.Parser(args2, argTypes);
 Assert.That(parsed2.Command, Is.EqualTo("cmd1"));

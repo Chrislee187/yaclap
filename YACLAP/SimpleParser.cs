@@ -4,7 +4,7 @@ using YACLAP.Extensions;
 
 namespace YACLAP
 {
-    public interface ISimpleParser
+    public interface IParser
     {
         string Command { get; }
         bool HasCommand { get; }
@@ -15,9 +15,9 @@ namespace YACLAP
         string Option(string option);
     }
 
-    public class SimpleParser : ISimpleParser
+    public class SimpleParser : IParser
     {
-        public static ISimpleParser CreateParser(string[] args) => new SimpleParser(args);
+        public static IParser CreateParser(string[] args) => new SimpleParser(args);
 
         private readonly IDictionary<string, string> _options = new Dictionary<string, string>();
 

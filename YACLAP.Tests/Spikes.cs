@@ -116,7 +116,7 @@ namespace YACLAP.Tests
 
         }
 
-        private void AssertNoErrors(IReflectionParser parser)
+        private void AssertNoErrors(ReflectionParser parser)
         {
             Assert.False(parser.Error, parser.Errors);
         }
