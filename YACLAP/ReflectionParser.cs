@@ -2,22 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Reflection;
 using YACLAP.Extensions;
 
 namespace YACLAP
-{
-    public interface IReflectionParser 
-    {
-        object Data { get; set; }
-        string Command { get; set; }
-        bool HasCommand { get; }
-        string SubCommand { get; set; }
-        bool HasSubCommand { get; }
-        bool Error { get; set; }
-        string Errors { get; set; }
-    }
-
-    public class ReflectionParser<T> : ReflectionParser
+{ 
+    public sealed class ReflectionParser<T> : ReflectionParser
     {
         public ReflectionParser(object data)
         {
@@ -47,7 +37,7 @@ namespace YACLAP
             CreateArgumentObject(args, argObject);
         }
 
-        public void CreateArgumentObject(string[] args, Type argObject)
+        private void CreateArgumentObject(string[] args, Type argObject)
         {
             var parsedArgs = new SimpleParser(args);
 
@@ -102,7 +92,7 @@ namespace YACLAP
         }
         private Type FindType(Type[] types, string name) => types.FirstOrDefault(t => t.Name.ToLower().Contains(name.ToLower()));
 
-        protected void Validate()
+        private void Validate()
         {
             var validationResults = new List<ValidationResult>();
             var validationContext = new ValidationContext(Data, null, null);
@@ -127,13 +117,22 @@ namespace YACLAP
         public bool Error { get; set; }
         public string Errors { get; set; }
 
+        public static ReflectionParser CreateParser(string[] args, string argClassName, Assembly assembly = null) =>
+            CreateParser(args, assembly == null 
+                ? Type.GetType(argClassName) 
+                : assembly.GetTypes().Single(t => t.FullName.EndsWith(argClassName)));
+
+
+        public static ReflectionParser CreateParser(string[] args, object argsInstance, string command = null, string subcommand=null) => CreateReflectionParser(argsInstance);
+
         public static ReflectionParser CreateParser(string[] args, params Type[] argTypes)
         {
             if (!argTypes.Any()) throw new ArgumentOutOfRangeException(nameof(argTypes), "No argument types supplied!");
             if (!args.Any())
             {
-                // TODO: This should create default arguments return
-                throw new ArgumentOutOfRangeException(nameof(args), "No argument supplied!");
+                if(argTypes.Length != 1) throw new ArgumentException("A single argument class type must be supplied when no arguments are present", nameof(argTypes));
+
+                return CreateReflectionParser(Activator.CreateInstance(argTypes[0]));
             }
 
             var pargs = new SimpleParser(args);
@@ -148,16 +147,21 @@ namespace YACLAP
 
             var dataInstance = CreateArgumentObject(pargs, argType);
 
-            var myGeneric = typeof(ReflectionParser<>);
-            var constructedClass = myGeneric.MakeGenericType(argType);
-
-
-            var reflectionParser = (ReflectionParser)Activator.CreateInstance(constructedClass, 
-                Convert.ChangeType(dataInstance, argType));
-            reflectionParser.Command = pargs.Command;
-            reflectionParser.SubCommand = pargs.SubCommand;
+            var reflectionParser = CreateReflectionParser(dataInstance, pargs.Command, pargs.SubCommand);
 
             return reflectionParser;
+        }
+
+        private static ReflectionParser CreateReflectionParser(object data, string command = null, string subCommand = null)
+        {
+            var myGeneric = typeof(ReflectionParser<>);
+            var constructedClass = myGeneric.MakeGenericType(data.GetType());
+
+
+            var parser = (ReflectionParser) Activator.CreateInstance(constructedClass, Convert.ChangeType(data, data.GetType()));
+            parser.Command = command;
+            parser.SubCommand = subCommand;
+            return parser;
         }
 
         private static object CreateArgumentObject(SimpleParser pargs, Type argObject)
