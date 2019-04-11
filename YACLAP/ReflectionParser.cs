@@ -9,89 +9,12 @@ namespace YACLAP
 { 
     public sealed class ReflectionParser<T> : ReflectionParser
     {
-        public ReflectionParser(object data)
+
+        public ReflectionParser(T data)
         {
-            Data = (T) data;
+            Data = data;
             Validate();
         }
-
-        public void BuildParser(string[] args, params Type[] argObjects)
-        {
-            if (!argObjects.Any()) throw new ArgumentOutOfRangeException(nameof(argObjects), "No argument types supplied!");
-            if (!args.Any())
-            {
-                // TODO: This should create default arguments return
-                throw new ArgumentOutOfRangeException(nameof(args), "No argument supplied!");
-            }
-
-            var parser = new SimpleParser(args);
-            Command = parser.Command;
-            SubCommand = parser.SubCommand;
-
-            var commandTypeName = $"{parser.Command}{parser.SubCommand}";
-
-            var argObject = FindType(argObjects, commandTypeName);
-
-            if (argObject == null) throw new ArgumentNullException($"Type for command '{commandTypeName}' not found.");
-
-            CreateArgumentObject(args, argObject);
-        }
-
-        private void CreateArgumentObject(string[] args, Type argObject)
-        {
-            var parsedArgs = new SimpleParser(args);
-
-            var instance = Activator.CreateInstance(argObject);
-
-            SetValues(instance, parsedArgs, argObject);
-
-            Data = (T) instance;
-        }
-
-        private void SetValues(object instance, SimpleParser args, Type argObject)
-        {
-            var memberInfos = argObject.GetProperties();
-            foreach (var memberInfo in memberInfos)
-            {
-                if (memberInfo.PropertyType.IsArray)
-                {
-                    throw new NotImplementedException();
-                }
-                /* if member is boolean check args.Flag(), else args.Option() */
-                var optionName = memberInfo.Name.ToLower();
-                if (memberInfo.PropertyType == typeof(bool))
-                {
-                    var flag = args.Flags(optionName);
-                    memberInfo.SetValue(instance, flag);
-                }
-                else
-                {
-                    var value = args.Option(optionName);
-                    if (memberInfo.PropertyType == typeof(int))
-                    {
-                        memberInfo.SetValue(instance, value.ToInt());
-                    }
-                    else if (memberInfo.PropertyType == typeof(double))
-                    {
-                        memberInfo.SetValue(instance, value.ToDouble());
-                    }
-                    else if (memberInfo.PropertyType == typeof(decimal))
-                    {
-                        memberInfo.SetValue(instance, value.ToDecimal());
-                    }
-                    else if (memberInfo.PropertyType == typeof(DateTime))
-                    {
-                        memberInfo.SetValue(instance, value.ToDateTime());
-                    }
-                    else
-                    {
-                        memberInfo.SetValue(instance, value);
-                    }
-                }
-            }
-        }
-        private Type FindType(Type[] types, string name) => types.FirstOrDefault(t => t.Name.ToLower().Contains(name.ToLower()));
-
         private void Validate()
         {
             var validationResults = new List<ValidationResult>();
@@ -124,6 +47,8 @@ namespace YACLAP
 
 
         public static ReflectionParser CreateParser(string[] args, object argsInstance, string command = null, string subcommand=null) => CreateReflectionParser(argsInstance);
+
+        public static ReflectionParser CreateParser<T>(string[] args) => CreateParser(args, typeof(T));
 
         public static ReflectionParser CreateParser(string[] args, params Type[] argTypes)
         {
