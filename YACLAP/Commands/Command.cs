@@ -2,11 +2,12 @@ namespace YACLAP.Commands
 {
     public abstract class Command
     {
-        protected Command(string name)
+        protected Command(string commandName)
         {
-            Name = name;
+            CommandName = commandName;
         }
-        public string Name { get; }
+
+        protected string CommandName { get; }
 
         public abstract void Execute();
     }

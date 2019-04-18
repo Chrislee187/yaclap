@@ -88,26 +88,7 @@ namespace YACLAP
                     if (args.HasOption(optionName))
                     {
                         var value = args.Option(optionName);
-                        if (memberInfo.PropertyType == typeof(int))
-                        {
-                            memberInfo.SetValue(instance, value.ToInt());
-                        }
-                        else if (memberInfo.PropertyType == typeof(double))
-                        {
-                            memberInfo.SetValue(instance, value.ToDouble());
-                        }
-                        else if (memberInfo.PropertyType == typeof(decimal))
-                        {
-                            memberInfo.SetValue(instance, value.ToDecimal());
-                        }
-                        else if (memberInfo.PropertyType == typeof(DateTime))
-                        {
-                            memberInfo.SetValue(instance, value.ToDateTime());
-                        }
-                        else
-                        {
-                            memberInfo.SetValue(instance, value);
-                        }
+                        memberInfo.SetValue(instance, value.ToTypeInstance(memberInfo.PropertyType));
                     }
                 }
             }

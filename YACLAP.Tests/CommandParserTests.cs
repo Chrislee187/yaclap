@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using YACLAP.Commands;
 using YACLAP.Extensions;
@@ -11,7 +13,7 @@ namespace YACLAP.Tests
 
     public class CommandParserTests
     {
-        private readonly ICommandMapper[] _commands = new List<ICommandMapper>
+        private readonly ICommandMapper[] _commandMappers = new List<ICommandMapper>
         {
             AddCommandMapper,
             UpdateCommandMapper,
@@ -24,16 +26,36 @@ namespace YACLAP.Tests
         [TestCase("update|filename|--key|a-value", typeof(UpdateCommand))]
         [TestCase("replace|filename1|filename2|--archive", typeof(ReplaceCommand))]
         [TestCase("delete|filename1|--confirm", typeof(DeleteCommand))]
-        public void Create_should_map_command(string testArgs, Type expectedCommand)
+        public void Parse_should_Parse_command(string testArgs, Type expectedCommand)
         {
-            Assert.That(CommandParser.Parse(testArgs.ToArgsArray(), _commands), Is.TypeOf(expectedCommand));
+            var command = CommandParser.Parse(testArgs.ToArgsArray(), _commandMappers);
+            Assert.That(command, Is.TypeOf(expectedCommand));
+            command.Execute();
+        }
+
+        [TestCase("add|filename|--key|a-value", typeof(AddCommand))]
+        [TestCase("update|filename|--key|a-value", typeof(UpdateCommand))]
+        [TestCase("replace|filename1|filename2|--archive", typeof(ReplaceCommand))]
+        [TestCase("delete|filename1|--confirm", typeof(DeleteCommand))]
+        public void Parse_should_Parse_command_using_custom_resolver(string testArgs, Type expectedCommand)
+        {
+
+            var usedCustom = false;
+            var command = CommandParser.Parse(testArgs.ToArgsArray(), _commandMappers, type =>
+            {
+                usedCustom = true;
+                return (Command) Activator.CreateInstance(type);
+            });
+            Assert.That(command, Is.TypeOf(expectedCommand));
+            Assert.True(usedCustom);
+            command.Execute();
         }
 
         [Test]
-        public void Create_should_use_argument_mappings()
+        public void Parse_should_use_argument_mappings()
         {
             var testArgs = "replace|filename1|filename2|--archive";
-            var cmd = (ReplaceCommand) CommandParser.Parse(testArgs.ToArgsArray(), _commands);
+            var cmd = (ReplaceCommand) CommandParser.Parse(testArgs.ToArgsArray(), _commandMappers);
 
             Assert.That(cmd.SourceFilename, Is.EqualTo("filename1"));
             Assert.That(cmd.DestinationFilename, Is.EqualTo("filename2"));
@@ -42,7 +64,7 @@ namespace YACLAP.Tests
         }
 
         [Test]
-        public void Create_performs_standard_data_annotation_validations()
+        public void Parse_performs_standard_data_annotation_validations()
         {
             var testArgs = "delete";
 
@@ -53,17 +75,56 @@ namespace YACLAP.Tests
             });
         }
 
+        [Test]
+        public void Parse_populates_flags_and_options()
+        {
+            var expectedFilename = "filename.tst";
+            var testArgs = $"delete|{expectedFilename}|--confirm";
+
+            ICommandMapper[] commands = { DeleteCommandMapper };
+            var command = (DeleteCommand)CommandParser.Parse(testArgs.ToArgsArray(), commands);
+
+            Assert.That(command.SourceFilename, Is.EqualTo(expectedFilename));
+            Assert.True(command.Confirm);
+            Assert.False(command.Debug);
+        }
+
+
+        [Test]
+        public void Parse_throws_for_unsupported_command()
+        {
+            var testArgs = $"unsupported|filename|--confirm";
+
+            ICommandMapper[] commands = { DeleteCommandMapper };
+            Assert.Throws<ArgumentException>(() => CommandParser.Parse(testArgs.ToArgsArray(), commands));
+        }
+
+        [Test]
+        public void Parse_non_string_options_are_converted()
+        {
+            var testArgs = $"add|filename|--number|27";
+
+            var cmd = (AddCommand) CommandParser.Parse(testArgs.ToArgsArray(), _commandMappers);
+
+            Assert.That(cmd.Number, Is.EqualTo(27));
+        }
         #region Test Command's
 
-        abstract class CommonOptionsAndFlags : Command
+        class CommonOptionsAndFlags : Command
         {
             public bool Debug { get; set; }
             public string Log { get; set; }
-            public abstract override void Execute();
+            public int Number { get; set; }
 
-            public CommonOptionsAndFlags(string name) : base(name)
+            public CommonOptionsAndFlags(string commandName) : base(commandName)
             {
 
+            }
+
+            public override void Execute()
+            {
+                Console.WriteLine($"Executing {CommandName} command.");
+                Console.WriteLine(JsonConvert.SerializeObject(this, Formatting.Indented));
             }
         }
 
@@ -75,11 +136,6 @@ namespace YACLAP.Tests
             public AddCommand() : base("add")
             {
             }
-
-            public override void Execute()
-            {
-                throw new NotImplementedException();
-            }
         }
 
         private class UpdateCommand : CommonOptionsAndFlags
@@ -88,14 +144,10 @@ namespace YACLAP.Tests
 
             public string Key { get; set; }
 
-            public UpdateCommand() : base("edit")
+            public UpdateCommand() : base("update")
             {
             }
 
-            public override void Execute()
-            {
-                throw new NotImplementedException();
-            }
         }
 
         private class ReplaceCommand : CommonOptionsAndFlags
@@ -106,11 +158,6 @@ namespace YACLAP.Tests
             public bool Archive { get; set; }
             public ReplaceCommand() : base("replace")
             {
-            }
-
-            public override void Execute()
-            {
-                throw new NotImplementedException();
             }
         }
 
@@ -124,11 +171,6 @@ namespace YACLAP.Tests
 
             public DeleteCommand() : base("delete")
             {
-            }
-
-            public override void Execute()
-            {
-                throw new NotImplementedException();
             }
         }
         #endregion

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace YACLAP.Extensions
 {
@@ -86,9 +88,47 @@ namespace YACLAP.Extensions
         public static string[] ToArgsArray(this string value) 
             => value.Split('|');
 
+        /// <summary>
+        /// Return default value is index out of bounds
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="index"></param>
+        /// <param name="defaultValue"></param>
+        /// <returns></returns>
         public static T DefaultingIndex<T>(this T[] value, int index, T defaultValue = default(T)) =>
             index + 1 > value.Length 
                 ? defaultValue 
                 : value[index];
+
+        /// <summary>
+        /// Searchs for the default static TryParse(string, out T) that exists on many .NET types to
+        /// dynamically convert a string to any type.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static object ToTypeInstance(this string value, Type type)
+        {
+            if (type == typeof(string)) return value;
+
+            var tryParseParamsFilter = new[]{ typeof(string), type.MakeByRefType() };
+            var tryParseMethod = type.GetMethod("TryParse", tryParseParamsFilter);
+
+            if (tryParseMethod == null)
+            {
+                throw new SystemException($"No static TryParse(string, out {type.Name}) found on {type.Name}");
+            }
+            var parameters = new object[] {value, null};
+            var result = (bool) tryParseMethod.Invoke(null, parameters);
+
+            if (result)
+            {
+                return parameters[1];
+            }
+
+            throw new SystemException($"Attempt to parse '{value}' using {type}.TryParse() failed");
+        }
+
     }
 }
