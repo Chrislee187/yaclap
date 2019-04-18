@@ -1,94 +1,117 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using YACLAP.Extensions;
 
 namespace YACLAP
 {
-    public interface IParser
+    public interface ISimpleParser
     {
-        string Command { get; }
-        bool HasCommand { get; }
-        string SubCommand { get; }
-        bool HasSubCommand { get; }
-        bool Flags(string flag);
-        bool HasOption(string option);
-        string Option(string option);
+        string[] Arguments { get; }
+        string Option(string name);
+        bool Flag(string name);
+        bool HasOption(string name);
+        bool HasFlag(string optionName);
     }
 
-    public class SimpleParser : IParser
+    public class SimpleParser : ISimpleParser
     {
-        public static IParser CreateParser(string[] args) => new SimpleParser(args);
+        private readonly IReadOnlyDictionary<string, string> _options;
 
-        private readonly IDictionary<string, string> _options = new Dictionary<string, string>();
-
-        public SimpleParser(string[] args)
+        public SimpleParser(string[] args, bool argumentsFirst = false, string optionsPrefix = "--")
         {
-            if (!args.Any()) return;
-            var argQueue = new Queue<string>(args);
+            bool IsOptionOrFlag(string value) => value.StartsWith(optionsPrefix);
+            bool NextTokenIsOptionOrFlag(Queue<string> queue1) => !queue1.Any() || IsOptionOrFlag(queue1.Peek());
 
-            CheckForCommand(argQueue);
-            CheckForSubCommand(argQueue);
-            CheckForFlagsAndOptions(argQueue);
-        }
-        public string Command { get; private set; } = "";
-        public bool HasCommand => Command.Any();
-        public string SubCommand { get; private set; } = "";
-        public bool HasSubCommand => SubCommand.Any();
+            var queue = new Queue<string>(args);
+            var arguments = new List<string>();
+            var options = new Dictionary<string, string>();
 
-        public bool Flags(string flag)
-        {
-            var lower = flag.ToLower();
-            return _options.ContainsKey(lower) && _options[lower].ToBool();
-        }
-
-        public bool HasOption(string option)
-        {
-            var lower = option.ToLower();
-            return _options.ContainsKey(lower) && !_options[lower].ToBool();
-        }
-
-        public string Option(string option) => HasOption(option) ? _options[option.ToLower()] : null;
-
-        private void CheckForFlagsAndOptions(Queue<string> argQueue)
-        {
-            while (argQueue.Any())
+            while (queue.Count > 0)
             {
-                if (NextTokenIsOption(argQueue))
+                var arg = queue.Dequeue();
+
+                if (IsOptionOrFlag(arg))
                 {
-                    var option = argQueue.Dequeue().Remove(0, 2).ToLower();
-                    var value = "true";
-                    if (argQueue.Any())
+                    var argName = arg.Substring(optionsPrefix.Length);
+                    var argValue = NextTokenIsOptionOrFlag(queue) ? "true" : queue.Dequeue();
+
+                    options.Add(argName, argValue);
+                }
+                else
+                {
+                    if (options.Any() && argumentsFirst)
                     {
-                        if (!NextTokenIsOption(argQueue))
+                        throw new ArgumentException("Arguments found after an option or flag");
+                    }
+                    arguments.Add(arg);
+                }
+            }
+
+            Arguments = arguments.ToArray();
+            _options = options;
+        }
+
+        public string[] Arguments { get; }
+        
+        public string Option(string name) => _options[name];
+
+        public bool Flag(string name) => _options[name].ToBool();
+        public bool HasOption(string name) => _options.ContainsKey(name);
+        public bool HasFlag(string name) => _options.ContainsKey(name);
+
+
+        public void SetOptionAndFlagValues(object instance)
+        {
+            var args = this;
+            var argObject = instance.GetType();
+            var memberInfos = argObject.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var memberInfo in memberInfos)
+            {
+                if (memberInfo.PropertyType.IsArray)
+                {
+                    throw new NotImplementedException();
+                }
+                /* if member is boolean check args.Flag(), else args.Option() */
+                var optionName = memberInfo.Name.ToLower();
+                if (memberInfo.PropertyType == typeof(bool))
+                {
+                    if (args.HasFlag(optionName))
+                    {
+                        var flag = args.Flag(optionName);
+                        memberInfo.SetValue(instance, flag);
+                    }
+                }
+                else
+                {
+                    if (args.HasOption(optionName))
+                    {
+                        var value = args.Option(optionName);
+                        if (memberInfo.PropertyType == typeof(int))
                         {
-                            value = argQueue.Dequeue();
+                            memberInfo.SetValue(instance, value.ToInt());
+                        }
+                        else if (memberInfo.PropertyType == typeof(double))
+                        {
+                            memberInfo.SetValue(instance, value.ToDouble());
+                        }
+                        else if (memberInfo.PropertyType == typeof(decimal))
+                        {
+                            memberInfo.SetValue(instance, value.ToDecimal());
+                        }
+                        else if (memberInfo.PropertyType == typeof(DateTime))
+                        {
+                            memberInfo.SetValue(instance, value.ToDateTime());
+                        }
+                        else
+                        {
+                            memberInfo.SetValue(instance, value);
                         }
                     }
-                    _options.Add(option, value);
                 }
             }
         }
 
-        private void CheckForSubCommand(Queue<string> argQueue)
-        {
-            if (NextTokenIsCommand(argQueue))
-            {
-                SubCommand = argQueue.Dequeue();
-            }
-        }
-
-        private void CheckForCommand(Queue<string> argQueue)
-        {
-            if (NextTokenIsCommand(argQueue))
-            {
-                Command = argQueue.Dequeue();
-            }
-        }
-
-        private bool NextTokenIsCommand(Queue<string> queue) => queue.Any() && !IsOption(queue.Peek());
-        private bool NextTokenIsOption(Queue<string> queue) => queue.Any() && IsOption(queue.Peek());
-
-        private bool IsOption(string arg) => arg.Any() && arg.StartsWith("--");
     }
-
 }

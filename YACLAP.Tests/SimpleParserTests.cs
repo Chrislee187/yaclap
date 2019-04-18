@@ -1,123 +1,80 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
+using YACLAP.Extensions;
 
 namespace YACLAP.Tests
 {
     public class SimpleParserTests
     {
+
         [Test]
-        public void Should_handle_no_arguments()
+        public void Should_parse_flags()
         {
-            string[] args = {""};
+            var testArgs = "--debug|--flag".ToArgsArray();
 
-            var parser = new SimpleParser(args);
+            var parser = new SimpleParser(testArgs);
 
-            Assert.False(parser.HasCommand);
-            Assert.False(parser.HasSubCommand);
+            Assert.True(parser.Flag("debug"));
+            Assert.True(parser.Flag("flag"));
+            Assert.That(parser.Arguments.Length, Is.EqualTo(0));
         }
 
         [Test]
-        public void Should_handle_commands()
+        public void Should_parse_options()
         {
-            string[] args = { "command" };
+            var testArgs = "--option|value|--option2|multi word value".ToArgsArray();
 
-            var parser = new SimpleParser(args);
-
-            Assert.True(parser.HasCommand);
-            Assert.That(parser.Command, Is.EqualTo("command"));
-            Assert.False(parser.HasSubCommand);
-        }
-
-        [Test]
-        public void Should_handle_subcommands()
-        {
-            string[] args = { "command","sub" };
-
-            var parser = new SimpleParser(args);
-
-            Assert.True(parser.HasCommand);
-            Assert.That(parser.Command, Is.EqualTo("command"));
-            Assert.True(parser.HasSubCommand);
-            Assert.That(parser.SubCommand, Is.EqualTo("sub"));
-        }
-
-        [Test]
-        public void Should_handle_single_flag()
-        {
-            string[] args = { "--flag1" };
-
-            var parser = new SimpleParser(args);
-
-            Assert.False(parser.HasCommand);
-            Assert.False(parser.HasSubCommand);
-            Assert.True(parser.Flags("flag1"));
-            Assert.False(parser.HasOption("flag1"));
-        }
-
-        [Test]
-        public void Should_handle_single_option()
-        {
-            string[] args = { "--option", "value" };
-
-            var parser = new SimpleParser(args);
-
-            Assert.False(parser.HasCommand);
-            Assert.False(parser.HasSubCommand);
+            var parser = new SimpleParser(testArgs);
             Assert.That(parser.Option("option"), Is.EqualTo("value"));
+            Assert.That(parser.Option("option2"), Is.EqualTo("multi word value"));
+            Assert.That(parser.Arguments.Length, Is.EqualTo(0));
         }
 
         [Test]
-        public void Should_handle_flags_and_options()
+        public void Should_parse_arguments()
         {
-            string[] args = { "--flag1", "--option1", "option1value", "--flag2", "--flag3" };
+            var testArgs = "arg1|arg2|arg three".ToArgsArray();
 
-            var parser = new SimpleParser(args);
-
-            Assert.False(parser.HasCommand);
-            Assert.False(parser.HasSubCommand);
-            Assert.True(parser.Flags("flag1"));
-            Assert.True(parser.Flags("flag2"));
-            Assert.True(parser.Flags("flag3"));
-            Assert.That(parser.Option("option1"), Is.EqualTo("option1value"));
+            var parser = new SimpleParser(testArgs);
+            Assert.That(parser.Arguments.Length, Is.EqualTo(3));
+            Assert.That(parser.Arguments[0], Is.EqualTo("arg1"));
+            Assert.That(parser.Arguments[1], Is.EqualTo("arg2"));
+            Assert.That(parser.Arguments[2], Is.EqualTo("arg three"));
         }
 
         [Test]
-        public void Should_handle_non_existant_flags_and_options()
+        public void Should_parse_combination()
         {
-            string[] args = { "--flag1", "--option1", "option1value", "--flag2", "--flag3" };
+            var testArgs = "argument1|--flag|--option|a value".ToArgsArray();
 
-            var parser = new SimpleParser(args);
+            var parser = new SimpleParser(testArgs);
+            Assert.True(parser.Flag("flag"));
+            Assert.That(parser.Option("option"), Is.EqualTo("a value"));
+            Assert.That(parser.Arguments.Length, Is.EqualTo(1));
+            Assert.That(parser.Arguments[0], Is.EqualTo("argument1"));
+        }
 
-            Assert.False(parser.HasCommand);
-            Assert.False(parser.HasSubCommand);
-            Assert.False(parser.Flags("flagx"));
-            Assert.That(parser.Option("option2"), Is.Null);
+
+        [Test]
+        public void Should_parse_arguments_from_anywhere()
+        {
+            var testArgs = "argument1|--flag|--option|a value|argument2".ToArgsArray();
+
+            var parser = new SimpleParser(testArgs);
+            Assert.True(parser.Flag("flag"));
+            Assert.That(parser.Option("option"), Is.EqualTo("a value"));
+            Assert.That(parser.Arguments.Length, Is.EqualTo(2));
+            Assert.That(parser.Arguments[0], Is.EqualTo("argument1"));
+            Assert.That(parser.Arguments[1], Is.EqualTo("argument2"));
         }
 
         [Test]
-        public void Should_handle_option_with_spaces_in_value()
+        public void Should_throw_in_arguments_first_mode_when_argument_found_after_flag_or_option()
         {
-            string[] args = { "--flag1", "--option1", "two words"};
+            var testArgs = "argument1|--flag|--option|a value|argument2".ToArgsArray();
 
-            var parser = new SimpleParser(args);
-
-            Assert.That(parser.Option("option1"), Is.EqualTo("two words"));
-        }
-        [Test]
-        public void Should_handle_command_subcommand_flags_and_options()
-        {
-            string[] args = { "command1", "subcommand1", "--command1subcommand1option", "value", "--command1subcommand1flag" };
-
-            var parser = new SimpleParser(args);
-
-            Assert.True(parser.HasCommand);
-            Assert.That(parser.Command, Is.EqualTo("command1"));
-            Assert.True(parser.HasSubCommand);
-            Assert.That(parser.SubCommand, Is.EqualTo("subcommand1"));
-            Assert.True(parser.Flags("command1subcommand1flag"));
-            Assert.That(parser.Option("command1subcommand1option"), Is.EqualTo("value"));
-
-
+            Assert.That(() => new SimpleParser(testArgs, true), Throws.Exception);
         }
 
     }
+
 }

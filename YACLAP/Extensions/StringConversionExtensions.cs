@@ -77,5 +77,18 @@ namespace YACLAP.Extensions
         {
             return (T)Enum.Parse(typeof(T), value, true);
         }
+
+        /// <summary>
+        /// Split strings using vertical bars, used to produce simulated args[] arrays received in main()
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static string[] ToArgsArray(this string value) 
+            => value.Split('|');
+
+        public static T DefaultingIndex<T>(this T[] value, int index, T defaultValue = default(T)) =>
+            index + 1 > value.Length 
+                ? defaultValue 
+                : value[index];
     }
 }
